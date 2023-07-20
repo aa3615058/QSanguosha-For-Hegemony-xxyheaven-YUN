@@ -221,6 +221,15 @@ bool Slash::targetFilter(const QList<const Player *> &targets, const Player *to_
         }
     }
 
+    if (Self->hasShownSkill("zhangui") && Self->getPhase() == Player::Play) {
+        if(targets.length() > 0) {
+            if(!(targets.contains(to_select->getNextAlive())) && !(targets.contains(to_select->getLastAlive()))) return false;
+        }
+        else {
+            if(!(to_select->getNextAlive() == Self) && !(to_select->getLastAlive() == Self)) return false;
+        }
+    }
+
     return targets.length() < slash_targets;
 }
 

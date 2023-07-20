@@ -920,11 +920,15 @@ public:
     {
         Room *room = player->getRoom();
         int id = to_select->getEffectiveId();
-        if (player->hasShownSkill("hongyan"))
-            return to_select->getSuit() == Card::Spade
+        if (player->hasShownSkill("hongyan")) {
+            bool is_spade = to_select->getSuit() == Card::Spade;
+            if(player->hasShownSkill("zhuyan"))
+                is_spade = is_spade || to_select->getSuit() == Card::Diamond;
+
+            return is_spade
                     && (room->getCardPlace(id) == Player::PlaceEquip
                         || room->getCardPlace(id) == Player::PlaceHand || room->getCardPlace(id) == Player::PlaceJudge);
-
+        }
         return false;
     }
 

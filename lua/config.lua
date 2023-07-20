@@ -62,6 +62,7 @@ config = {
 		"Momentum",
 		"Transformation",
 		"Power",
+		"Yun",
 		"Manoeuvre",
 		"NewSGS",
 		"MOL",

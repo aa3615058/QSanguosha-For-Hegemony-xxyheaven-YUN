@@ -51,13 +51,5 @@ This project is also a commemoration of my college life.
         <b>奇风</b>：当你对其他角色造成非此技能转移的伤害时，你可以弃置一张♠手牌并选择另一名角色，你将此伤害转移给该角色，然后其摸 X 张牌，X 为该角色已损失的体力值。
       </td>
     </tr>
-    <tr>
-      <td width="340"><img src="https://github.com/aa3615058/YUNCardImages/blob/master/card-output/G.YUN007liyunpeng.jpg" width="320" height="450"/></td>
-      <td>
-        <b>点绛</b>：锁定技，若你的另一张武将牌已明置且性别为：女性，视为你拥有技能“闭月”；男性，你的手牌上限+2。<br>
-        <b>破阵</b>：主将技，锁定技，你使用的【杀】不能被点数小于此【杀】的【闪】响应。<br>
-        <b>唱和</b>：副将技，你计算体力上限时减少1个单独的阴阳鱼，其他同势力角色的结束阶段，你可以交给该角色一张手牌，若其在回合内使用或打出过同牌名的牌，你摸一张牌。
-      </td>
-    </tr>
   </tbody>
 </table>

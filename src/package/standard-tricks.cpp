@@ -916,8 +916,33 @@ void Lightning::takeEffect(ServerPlayer *target) const
 #ifndef QT_NO_DEBUG
     if (!target->getAI() && target->askForSkillInvoke("userdefine:cancelLightning")) return;
 #endif
+    DamageStruct damage = DamageStruct(this, NULL, target, 3, DamageStruct::Thunder);
+
+    QList<ServerPlayer *> xiaosas = target->getRoom()->findPlayersBySkillName("xiaohan");
+    if(xiaosas.length() > 0) {
+        ServerPlayer * xiaosa;
+
+        foreach(ServerPlayer *p, xiaosas) {
+            if(p->hasShownSkill("xiaohan")) xiaosa = p;
+        }
+
+        if(xiaosa) {
+            Room* room = target->getRoom();
+            damage.from = xiaosa;
+            damage.by_user = false;
+
+            LogMessage log;
+            log.type = "#XiaohanCompulsory";
+            log.from = xiaosa;
+            log.arg = "xiaohan";
+            log.arg2 = this->getEffectName();
+            room->sendLog(log);
+
+            room->broadcastSkillInvoke("xiaohan", xiaosa);
+        }
+    }
     target->getRoom()->setEmotion(target, "lightning");
-    target->getRoom()->damage(DamageStruct(this, NULL, target, 3, DamageStruct::Thunder));
+    target->getRoom()->damage(damage);
 }
 
 QList<Card *> StandardCardPackage::trickCards()
