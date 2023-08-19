@@ -1533,16 +1533,12 @@ sgs.ai_skill_use_func.YongjinCard = function(card, use, self)
 end
 
 sgs.ai_use_priority.YongjinCard = 10--优先度多少合适？
+sgs.ai_skill_playerchosen.yongjin = function(self, _targets, max_num, min_num)
 
-sgs.ai_skill_use["@@yongjin_move"] = function(self, prompt, method)
-	if prompt ~= "@yongjin-next" then
-		return "."
-	end
-	local YJMoveCard = "@YongjinMoveCard=.&->"
-
+	self:sort(self.enemies, "defense")
 		for _, friend in ipairs(self.friends_noself) do
-			if friend:hasEquip() and friend:hasShownSkills(sgs.lose_equip_skill) and self:getMoveCardorTarget(friend, "." ,"e") then
-				return YJMoveCard .. friend:objectName() .. "+" .. self:getMoveCardorTarget(friend, "target" ,"e"):objectName()
+			if friend:hasEquip() and friend:hasShownSkills(sgs.lose_equip_skill) and self:getMoveCardorTarget(friend, ".", "e") then
+				return {friend, self:getMoveCardorTarget(friend, "target", "e")}
 			end
 		end
 
@@ -1555,19 +1551,30 @@ sgs.ai_skill_use["@@yongjin_move"] = function(self, prompt, method)
 
 		if #targets > 0 then
 			self:sort(targets, "defense")
-			return YJMoveCard .. targets[#targets]:objectName() .. "+" .. self:getMoveCardorTarget(targets[#targets], "target" ,"e"):objectName()
+			return {targets[#targets], self:getMoveCardorTarget(targets[#targets], "target", "e")}
 		end
 
-		if self.player:hasEquip() and self:getMoveCardorTarget(self.player, ".") then--没有目标给自己的武器，但是好像不会给敌人再给回自己的高级操作
-			return YJMoveCard .. self.player:objectName() .. "+" .. self:getMoveCardorTarget(self.player, "target" ,"e"):objectName()
+		if self.player:hasEquip() and self.player:hasShownSkills(sgs.lose_equip_skill) and self:getMoveCardorTarget(self.player, ".", "e") then
+			return {self.player, self:getMoveCardorTarget(self.player, "target" ,"e")}
 		end
 
-		for _, friend in ipairs(self.friends_noself) do--再没有目标把队友的武器给自己
-			if friend:hasEquip() then
-				return YJMoveCard .. friend:objectName() .. "+" .. self.player:objectName()
+		local friends = {}--没有敌人则简单转移队友装备
+		for _, friend in ipairs(self.friends) do
+			if self:getMoveCardorTarget(friend, "." ,"e") then
+				table.insert(friends, friend)
 			end
 		end
-	return "."
+
+		if #friends > 0 then
+			self:sort(friends, "hp", true)
+			return {friends[#friends], self:getMoveCardorTarget(friends[#friends], "target", "e")}
+		end
+
+	return {}
+end
+
+sgs.ai_skill_transfercardchosen.yongjin = function(self, targets, equipArea, judgingArea)
+	return self:getMoveCardorTarget(targets:first(), "card", "e")
 end
 
 --吕范

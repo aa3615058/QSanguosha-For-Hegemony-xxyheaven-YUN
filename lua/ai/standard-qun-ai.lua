@@ -1114,6 +1114,8 @@ sgs.ai_skill_invoke.lirang = function(self, data)
 	if not self:willShowForAttack() then
 		return false
 	end
+	--乱击打死君张角后,弃牌问礼让时还没野
+	if self.player:getLord(true) and self.player:getLord(true):isDead() then return false end
 	for _, afriend in ipairs(self.friends_noself) do
 		if not self:needKongcheng(afriend, true) then return true end
 	end
@@ -1121,31 +1123,31 @@ sgs.ai_skill_invoke.lirang = function(self, data)
 end
 
 sgs.ai_skill_use["@@liranggive"] = function(self, prompt)
-	--self.player:speak("开始判断礼让")
-	if not self:willShowForAttack() or #self.friends_noself == 0 then return "." end
-	--local card_ids = self.player:property("lirang_this_time"):toString() ~= "" and self.player:property("lirang_this_time"):toString():split("+") or {}
-
-	local card_ids = self.player:getTag("lirang_forAI"):toString():split("+")
-
-	self:updatePlayers()
 	local cards = {}
-
 	for _, card_id in ipairs(card_ids) do
-		--[[self.player:speak(sgs.Sanguosha:getCard(card_id):getLogName())]]--
 		table.insert(cards, sgs.Sanguosha:getCard(card_id))
 	end
 
-	local card, friend = self:getCardNeedPlayer(cards, self.friends_noself)
-	if card and friend then return "@LirangGiveCard=" .. card:getEffectiveId() .. "->" .. friend:objectName() end
-	if #self.friends_noself > 0 then
-		self:sort(self.friends_noself, "handcard")
-		for _, afriend in ipairs(self.friends_noself) do
-			if not self:needKongcheng(afriend, true) then
-				return "@LirangGiveCard=" .. cards[1]:getEffectiveId() .. "->" .. afriend:objectName()
-			end
-		end
+	local new_friends = {}
+	for _, friend in ipairs(self.friends_noself) do
+		if not self:needKongcheng(friend, true) then table.insert(new_friends, friend) end
 	end
-	return "."
+
+	if #new_friends > 0 then
+		local card, target = self:getCardNeedPlayer(cards, new_friends)
+		if card and target then
+			local flag = string.format("%s_%s_%s", "visible", self.player:objectName(), target:objectName())
+			if not card:hasFlag("visible") then card:setFlags(flag) end--记录方便盗书，是否增加主动盗书配合？
+			return target, card:getEffectiveId()
+		end
+		self:sort(new_friends, "defense")
+		self:sortByKeepValue(cards, true)
+		local flag = string.format("%s_%s_%s", "visible", self.player:objectName(), new_friends[1]:objectName())
+		if not cards[1]:hasFlag("visible") then cards[1]:setFlags(flag) end
+		return new_friends[1], cards[1]:getEffectiveId()
+	else
+		return nil, -1
+	end
 end
 
 --纪灵

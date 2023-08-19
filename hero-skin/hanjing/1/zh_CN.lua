@@ -1,3 +1,3 @@
 sgs.LoadSkinTransltionTable {
-	["#hanjing"] = "凌云之剑"
+	["#hanjing"] = "裁决之剑"
 }

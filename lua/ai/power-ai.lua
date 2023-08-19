@@ -266,7 +266,29 @@ jianglve_skill.name = "jianglve"
 table.insert(sgs.ai_skills, jianglve_skill)
 jianglve_skill.getTurnUseCard = function(self, inclusive)
 	if self.player:getMark("@strategy") < 1 then return end
-  return sgs.Card_Parse("@JianglveCard=.&jianglve")
+	---[[--将略召唤效果没了
+	local jianglve_value = 0
+	local evaluate_value = 0
+	local evaluate_friend = false
+	for _,p in sgs.qlist(self.room:getAlivePlayers()) do
+		if sgs.isAnjiang(p) then
+			if self:evaluateKingdom(p) == "unknown" then
+				evaluate_value = evaluate_value + 0.5
+				evaluate_friend = true
+			elseif self:isFriendWith(p) then
+				evaluate_value = evaluate_value + 1
+				if self:isWeak(p) then evaluate_value = evaluate_value + 1 end
+			end
+		elseif self.player:isFriendWith(p) then
+			jianglve_value = jianglve_value + 1
+			if self:isWeak(p) then jianglve_value = jianglve_value + 1 end
+		end
+	end
+	if not evaluate_friend then return sgs.Card_Parse("@JianglveCard=.&jianglve") end--没有未明置的队友
+	if jianglve_value >= 4 then return sgs.Card_Parse("@JianglveCard=.&jianglve") end--至少覆盖3人或者2人isWeak
+	if jianglve_value < 3 and evaluate_value > 0 then return end--暂且等待队友明置
+	--]]
+	return sgs.Card_Parse("@JianglveCard=.&jianglve")
 end
 
 sgs.ai_skill_use_func.JianglveCard= function(card, use, self)

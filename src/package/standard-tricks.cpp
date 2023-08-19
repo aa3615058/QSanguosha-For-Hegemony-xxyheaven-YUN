@@ -923,7 +923,11 @@ void Lightning::takeEffect(ServerPlayer *target) const
         ServerPlayer * xiaosa;
 
         foreach(ServerPlayer *p, xiaosas) {
-            if(p->hasShownSkill("xiaohan")) xiaosa = p;
+            if(p->hasShownSkill("xiaohan")) {
+                xiaosa = p;
+            }else if(p->askForSkillInvoke("xiaohan",QVariant(),false)) {
+                xiaosa = p;
+            }
         }
 
         if(xiaosa) {
