@@ -1,9 +1,12 @@
 # QSanguosha-G-YUN
 
-Based on <a href="https://github.com/xxyheaven/QSanguosha-For-Hegemony-xxyheaven">QSanguosha-For-Hegemony-xxyheaven</a>.    
-Compeletly new general package <b>G.YUN</b>.    
-I designed, tested, printed and then programmed these Sanguosha general cards for my college classmates as graduation gifts. We had a good time when playing Sanguosha.    
-This project is also a commemoration of my college life.    
+本项目基于 太阳神三国杀国战 <a href="https://github.com/xxyheaven/QSanguosha-For-Hegemony-xxyheaven">QSanguosha-For-Hegemony-xxyheaven</a>.    
+感谢 太阳神三国杀 的创始人 太阳神上 以及其他神杀的开发者，你们的无私奉献让众多 三国杀DIYer 拥有了创作的平台。    
+
+加入了全新的武将扩展包 G.YUN，总计 7 张武将牌。    
+这些武将大多设计于2013-2015年，最初是作为毕业礼物送给我的同学们，纪念往昔一起三国杀的快乐时光。我独自完成了武将牌的设计，测试，编程，制图，印刷。    
+后来历经多次修改，尤其在2023年进行了一次大改，才有了如今的模样。游戏性，操作性，趣味性，强度都调整到了令人满意的水平。    
+这个项目也是作为大学生活的一种纪念。    
 
 ## G.YUN package
 
