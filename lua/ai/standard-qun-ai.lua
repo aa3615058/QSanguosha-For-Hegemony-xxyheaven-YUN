@@ -1122,7 +1122,7 @@ sgs.ai_skill_invoke.lirang = function(self, data)
 	return false
 end
 
-sgs.ai_skill_use["@@liranggive"] = function(self, prompt)
+sgs.ai_skill_askforyiji.lirang = function(self, card_ids)
 	local cards = {}
 	for _, card_id in ipairs(card_ids) do
 		table.insert(cards, sgs.Sanguosha:getCard(card_id))

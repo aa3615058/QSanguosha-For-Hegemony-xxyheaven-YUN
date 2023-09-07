@@ -124,7 +124,7 @@ public:
 
 class Tiancheng : public TriggerSkill {
 public:
-    static QString mark_times;
+    static QString mark_tiancheng_times;
 
      Tiancheng() : TriggerSkill("tiancheng") {
          events << CardResponded << CardUsed << FinishJudge;
@@ -174,9 +174,9 @@ public:
 
      virtual bool effect(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const {
          player->drawCards(1, objectName());
-         int times = player->getMark(mark_times);
+         int times = player->getMark(mark_tiancheng_times);
          if(player->getPhase() == Player::Play) {
-             if(player->getMark(mark_times)) {
+             if(player->getMark(mark_tiancheng_times)) {
                  room->askForDiscard(player, objectName(), 1, 1, false, true);
 
                  QString mark_tip = player->tag["tiancheng_mark_tip"].value<QString>();
@@ -186,12 +186,14 @@ public:
                  room->setPlayerMark(player, mark_tip, 1);
                  player->tag["tiancheng_mark_tip"] = QVariant::fromValue(mark_tip);
              }
-             room->setPlayerMark(player, mark_times, times+1);
+             room->setPlayerMark(player, mark_tiancheng_times, times+1);
          }
 
          return false;
      }
 };
+
+QString Tiancheng::mark_tiancheng_times = "tiancheng-Clear";
 
 class Tianchengkeep : public MaxCardsSkill {
 public:
@@ -201,14 +203,13 @@ public:
 
     int getExtra(const Player *target) const {
         if (target->hasShownSkill("tiancheng")) {
-            int keep = target->getMark(Tiancheng::mark_times)-1;
+            int keep = target->getMark(Tiancheng::mark_tiancheng_times)-1;
             if(keep < 0) keep = 0;
             return keep;
         } else return 0;
     }
 };
 
-QString Tiancheng::mark_times = "tiancheng-Clear";
 
 class Lianji : public TriggerSkill {
 public:
@@ -823,13 +824,14 @@ public:
 
         room->setTag("QifengDamage", data);
         room->setPlayerFlag(damage.to, "QifengOriginal");
-        const Card* res = room->askForUseCard(player, "@@qifeng", QString("@qifeng-card:%1").arg(damage.to->objectName()), -1, Card::MethodDiscard);
+        const Card* card = room->askForUseCard(player, "@@qifeng", QString("@qifeng-card:%1").arg(damage.to->objectName()), -1, Card::MethodDiscard);
         room->setPlayerFlag(damage.to, "-QifengOriginal");
-        if(res) {
-            room->broadcastSkillInvoke(objectName());
+        if(card != NULL) {
+            room->broadcastSkillInvoke(objectName(), player);
+            return true;
         }
 
-        return res;
+        return false;
     }
 
     virtual bool effect(TriggerEvent, Room *, ServerPlayer *, QVariant &, ServerPlayer *) const {
@@ -972,6 +974,7 @@ public:
     virtual bool cost(TriggerEvent, Room *room, ServerPlayer *skill_target, QVariant &, ServerPlayer *ask_who) const {
         if (ask_who != NULL && ask_who->askForSkillInvoke(this, QVariant::fromValue(skill_target))) {
             room->setEmotion(ask_who, "weapon/double_sword");
+            room->broadcastSkillInvoke(objectName(), ask_who);
             return true;
         }
         return false;
@@ -1011,12 +1014,90 @@ public:
         return false;
     }
 
-    virtual bool onPhaseChange(ServerPlayer *diaochan) const {
-        diaochan->drawCards(1);
+    virtual bool onPhaseChange(ServerPlayer *player) const {
+        player->drawCards(1);
         return false;
     }
 };
 
+class Bingjiu : public TriggerSkill {
+public:
+    static QString mark_bingjiu;
+
+    Bingjiu() : TriggerSkill("bingjiu") {
+        events << DamageComplete << CardFinished;
+        frequency = Compulsory;
+    }
+
+    virtual bool canPreshow() const {
+        return true;
+    }
+
+    virtual TriggerList triggerable(TriggerEvent event, Room *room, ServerPlayer *player, QVariant &data) const {
+        TriggerList skill_list;
+        if(event == DamageComplete) {
+            QList<ServerPlayer *> feiges = room->findPlayersBySkillName(objectName());
+            foreach(ServerPlayer *feige, feiges) {
+                if(feige->getPhase() == Player::Play) {
+                    int n = feige->getMark(mark_bingjiu);
+                    if(n >= 2) continue;
+
+                    n += data.value<DamageStruct>().damage;
+                    room->setPlayerMark(feige, mark_bingjiu, n);
+                    if (n >= 2) {
+                        QList<ServerPlayer *> targets = room->getAlivePlayers();
+                        foreach(ServerPlayer *target, targets) {
+                            if(target->isWounded() && feige->isFriendWith(target)) {
+                                skill_list.insert(feige, QStringList(objectName()));
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            return skill_list;
+        }
+
+        if (!TriggerSkill::triggerable(player)) return skill_list;
+        if(event == CardFinished && data.value<CardUseStruct>().card->isKindOf("Analeptic")) {
+            skill_list.insert(player, QStringList(objectName()));
+        }
+        return skill_list;
+    }
+
+    virtual bool cost(TriggerEvent event, Room *room, ServerPlayer *, QVariant &, ServerPlayer *feige) const {
+        bool invoke = feige->hasShownSkill(this) ? true : feige->askForSkillInvoke(this, (int)event);
+        if(invoke) {
+            room->sendCompulsoryTriggerLog(feige, objectName());
+            room->broadcastSkillInvoke(objectName(), feige);
+        }
+        return invoke;
+    }
+
+    virtual bool effect(TriggerEvent event, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *feige) const {
+        if(event == DamageComplete) {
+            QList<ServerPlayer *> targets;
+            foreach(ServerPlayer* target, room->getAlivePlayers()) {
+                if(target->isWounded() && feige->isFriendWith(target)) {
+                    targets << target;
+                }
+            }
+
+            if(targets.count() > 0) {
+                ServerPlayer *target = room->askForPlayerChosen(feige, targets, objectName(), "@bingjiu-recover", false, false);
+
+                RecoverStruct recover;
+                recover.who = target;
+                room->recover(target, recover);
+            }
+        }else if(event == CardFinished) {
+            room->damage(DamageStruct(objectName(), player, player));
+        }
+        return false;
+    }
+};
+
+QString Bingjiu::mark_bingjiu = "bingjiu-PhaseClear";
 
 YunPackage::YunPackage()
     :Package("yun")
@@ -1026,8 +1107,8 @@ YunPackage::YunPackage()
     huaibeibei->addSkill(new Zhuyan);
     huaibeibei->addSkill(new Tiancheng);
     huaibeibei->addSkill(new Tianchengkeep);
-    related_skills.insertMulti("tiancheng", "#tianchengkeep");
-    related_skills.insertMulti("hongyan_huaibeibei", "#hongyan_huaibeibei-maxcards");
+    insertRelatedSkills("tiancheng", "#tianchengkeep");
+    insertRelatedSkills("hongyan_huaibeibei", "#hongyan_huaibeibei-maxcards");
     huaibeibei->addRelateSkill("hongyan_huaibeibei");
 
     General *hanjing = new General(this, "hanjing", "wu", 3, false); // G.Yun 002
@@ -1037,8 +1118,9 @@ YunPackage::YunPackage()
     General *wangcan = new General(this, "wangcan", "wei", 3, false); // G.Yun 003
     wangcan->addSkill(new Siwu);
     wangcan->addSkill(new SiwuDraw);
+    wangcan->addSkill(new DetachEffectSkill("Siwu","&wire"));
+    insertRelatedSkills("siwu", 2, "#siwu-draw", "#siwu-clear");
     wangcan->addSkill(new Xingcan);
-    related_skills.insertMulti("siwu", "#siwu-draw");
 
     General *xiaosa = new General(this, "xiaosa", "wei", 4, false); // G.Yun 005
     xiaosa->addSkill(new Xiaohan);
@@ -1052,8 +1134,9 @@ YunPackage::YunPackage()
     lishuyu->addSkill(new Yingzhou);
     lishuyu->addSkill(new Qifeng);
 
-    General *liyunpeng = new General(this, "liyunpeng", "qun", 4); // G.Yun 007
+    General *liyunpeng = new General(this, "liyunpeng", "qun", 3); // G.Yun 007
     liyunpeng->addSkill(new Dianjiang);
+    liyunpeng->addSkill(new Bingjiu);
     liyunpeng->addRelateSkill("hongyan");
     liyunpeng->addRelateSkill("qiaopo");
     liyunpeng->addRelateSkill("xuanyang");

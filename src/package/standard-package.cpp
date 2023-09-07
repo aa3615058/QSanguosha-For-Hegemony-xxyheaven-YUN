@@ -176,7 +176,7 @@ public:
             if (current && current->getPhase() != Player::NotActive) {
                 if (damage.from) {
                     room->addPlayerMark(damage.from, "Global_DamagePiont_Round", damage.damage);
-
+                    room->addPlayerMark(damage.from, "Global_DamagePiont_Phase", damage.damage);
 
                     QStringList player_list = damage.from->property("Global_DamagePlayers_Phase").toString().split("+");
                     if (!player_list.contains(player->objectName())) {
@@ -378,6 +378,7 @@ public:
                 room->setPlayerMark(p, "GlobalLoseCardCount", 0);
                 room->setPlayerMark(p, "Global_InjuredTimes_Phase", 0);
                 room->setPlayerMark(p, "Global_DamageTimes_Phase", 0);
+                room->setPlayerMark(p, "Global_DamagePiont_Phase", 0);
                 room->setPlayerProperty(p, "Global_DamagePlayers_Phase", QVariant());
                 room->setPlayerMark(player, "GlobalPlayCardUsedTimes", 0);
             }
