@@ -603,21 +603,22 @@ public:
         return true;
     }
 
-    virtual QStringList triggerable(TriggerEvent, Room *, ServerPlayer *player, QVariant &, ServerPlayer* &) const {
+    virtual QStringList triggerable(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer* &) const {
         if (!PhaseChangeSkill::triggerable(player)) return QStringList();
         if (player->getPhase() == Player::Finish) {
-            return QStringList(objectName());
+            foreach (ServerPlayer *mate, room->getAlivePlayers()) {
+                if (mate->isFriendWith(player) && mate->isWounded()) {
+                    return QStringList(objectName());
+                }
+            }
         }
         return QStringList();
     }
 
     virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const {
-        QList<const Player *> players = player->getAliveSiblings();
-        players << player;
-
         int x = 0;
-        foreach (const Player *p, players) {
-            if (player->isFriendWith(p) && p->isWounded()) {
+        foreach (ServerPlayer *mate, room->getAlivePlayers()) {
+            if (player->isFriendWith(mate) && mate->isWounded()) {
                 x++;
             }
         }
@@ -886,13 +887,7 @@ public:
         if(!flag) return;
 
         //此技能是否在副将
-        bool flag_deputy = false;
-        foreach (const Skill *skill, player->getDeputySkillList(true, true)) {
-            if (skill->objectName() == objectName()) {
-                flag_deputy = true;
-                break;
-            }
-        }
+        bool flag_deputy = player->inDeputySkills(objectName());
 
         //如果此技能未亮，且拥有此技能，则清除附属技能
         if(!player->hasShownSkill(objectName())) {
@@ -903,6 +898,8 @@ public:
                 room->handleAcquireDetachSkills(player, getHandleString(skill_club, flag_deputy, false));
             }
             return;
+
+
         }
 
         //如果此技能已亮，依据装备获得技能
@@ -1118,7 +1115,7 @@ YunPackage::YunPackage()
     General *wangcan = new General(this, "wangcan", "wei", 3, false); // G.Yun 003
     wangcan->addSkill(new Siwu);
     wangcan->addSkill(new SiwuDraw);
-    wangcan->addSkill(new DetachEffectSkill("Siwu","&wire"));
+    wangcan->addSkill(new DetachEffectSkill("siwu","&wire"));
     insertRelatedSkills("siwu", 2, "#siwu-draw", "#siwu-clear");
     wangcan->addSkill(new Xingcan);
 
