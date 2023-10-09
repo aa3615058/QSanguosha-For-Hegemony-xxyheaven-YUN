@@ -63,5 +63,22 @@ end
 --炫阳
 sgs.ai_skill_invoke.xuanyang = sgs.ai_skill_invoke.DoubleSword
 sgs.ai_skill_cardask["@xuanyang-discard"] = sgs.ai_skill_cardask["double-sword-card"]
+
+--慧黠
+sgs.ai_skill_invoke.huixia = function(self, data)
+	if not (self:willShowForAttack() or self:willShowForDefence()) then return false end
+	return true
+end
+
 --闭月
 sgs.ai_skill_invoke.biyue_liyunpeng = sgs.ai_skill_invoke.biyue
+
+--良才
+sgs.ai_skill_invoke.liangcai = function(self, data)
+	if self:needRetrial(data:toJudge()) then
+		return true
+	end
+	return false
+end
+
+--病酒

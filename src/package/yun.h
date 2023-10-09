@@ -34,4 +34,15 @@ public:
     void onEffect(const CardEffectStruct &effect) const;
 };
 
+class YijiuCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE YijiuCard();
+
+    void onUse(Room *room, const CardUseStruct &card_use) const;
+    void onEffect(const CardEffectStruct &effect) const;
+};
+
 #endif // YUN_H

@@ -742,7 +742,8 @@ public:
             if(card) {
                 if(card->isKindOf("SkillCard")) {}
                 else if(card && (card->isNDTrick() || card->isKindOf("BasicCard"))
-                         && !(card->getSkillName()==objectName()) && !(card->getColor()==Card::Colorless)) {
+                         && (card->getSkillName().isNull() || card->getSkillName()!=objectName())
+                        && !(card->getColor()==Card::Colorless)) {
                      room->setPlayerMark(player, YingzhouViewAsSkill::mark_flag, 1);
                      room->setPlayerMark(player, YingzhouViewAsSkill::mark_cardid, card->getId());
 
@@ -898,8 +899,6 @@ public:
                 room->handleAcquireDetachSkills(player, getHandleString(skill_club, flag_deputy, false));
             }
             return;
-
-
         }
 
         //如果此技能已亮，依据装备获得技能
@@ -935,7 +934,6 @@ public:
         room->handleAcquireDetachSkills(player, getHandleString(skill_club, flag_deputy, flag_club));
     }
 
-private:
     static QString getHandleString(QString skill_name, bool deputy=false, bool attach=false) {
         QString str = skill_name;
         if(deputy) str.append('!');
@@ -1017,84 +1015,240 @@ public:
     }
 };
 
-class Bingjiu : public TriggerSkill {
-public:
-    static QString mark_bingjiu;
+YijiuCard::YijiuCard() {
+    mute = true;
+    will_throw = false;
+    target_fixed = true;
+    handling_method = Card::MethodNone;
+}
+void YijiuCard::onUse(Room *room, const CardUseStruct &use) const {
+    ServerPlayer* player = use.from;
+    room->setPlayerMark(player, "@yijiu", 0);
+    room->broadcastSkillInvoke("yijiu", player);
+    room->doSuperLightbox("liyunpeng", "yijiu");
 
-    Bingjiu() : TriggerSkill("bingjiu") {
-        events << DamageComplete << CardFinished;
+    CardUseStruct new_use = use;
+    new_use.to << player;
+
+    Card::onUse(room, new_use);
+}
+void YijiuCard::onEffect(const CardEffectStruct &effect) const {
+    effect.from->addToPile("jiuyou", effect.card->getSubcards()[0], true);
+}
+
+class Yijiu : public OneCardViewAsSkill {
+public:
+    static QString yijiu_pile;
+
+    Yijiu() : OneCardViewAsSkill("yijiu")
+    {
+        frequency = Limited;
+        limit_mark = "@yijiu";
+        filter_pattern = ".!";
+    }
+
+    virtual const Card *viewAs(const Card *originalCard) const
+    {
+        YijiuCard *yijiuCard = new YijiuCard;
+        yijiuCard->addSubcard(originalCard);
+        yijiuCard->setShowSkill(objectName());
+        return yijiuCard;
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const
+    {
+        return player->getMark("@yijiu") >= 1;
+    }
+};
+
+QString Yijiu::yijiu_pile = "jiuyou";
+
+class YijiuSkillKeep : public TriggerSkill {
+public:
+    static QString skill_heart;
+    static QString skill_diamond;
+    static QString skill_spade;
+    static QString skill_club;
+
+    YijiuSkillKeep() : TriggerSkill("#yijiuskillkeep") {
+        events << CardsMoveOneTime << EventLoseSkill << EventAcquireSkill << GeneralShown << GeneralHidden << DFDebut;
         frequency = Compulsory;
+    }
+
+    virtual QStringList triggerable(TriggerEvent , Room *, ServerPlayer *, QVariant &, ServerPlayer* &) const {
+        return QStringList();
+    }
+
+    //event是此次事件，player是事件主角（未必是拥有此技能的人），data是相关数据
+    virtual void record(TriggerEvent event, Room *room, ServerPlayer *player, QVariant &data) const {
+        if (player == NULL) return;
+
+        bool flag = false;
+        if(event == TriggerEvent::CardsMoveOneTime) {
+            //如果是牌的移动，筛选条件：1.拥有此技能。2.牌是置入“旧游”或离开“旧游”。
+            if(player->hasShownSkill(objectName())) {
+                QVariantList move_datas = data.toList();
+                foreach (QVariant move_data, move_datas) {
+                    CardsMoveOneTimeStruct move = move_data.value<CardsMoveOneTimeStruct>();
+                    if (move.to && move.to == player && move.origin_to_pile_name==Yijiu::yijiu_pile) {
+                        flag = true;
+                        break;
+                    }
+
+                    if (move.from && move.from == player && move.origin_from_pile_names.contains(Yijiu::yijiu_pile)) {
+                        flag = true;
+                        break;
+                    }
+                }
+            }
+        }else flag = true;
+
+        if(!flag) return;
+
+        //此技能是否在副将
+        bool flag_deputy = player->inDeputySkills(objectName());
+
+        //如果此技能未亮，且拥有此技能，则清除附属技能
+        if(!player->hasShownSkill(objectName())) {
+            if(player->hasSkill(objectName())) {
+                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_heart, flag_deputy, false));
+                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_diamond, flag_deputy, false));
+                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_spade, flag_deputy, false));
+                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_club, flag_deputy, false));
+            }
+            return;
+        }
+
+        //如果此技能已亮，依据“旧游”获得技能
+        bool flag_heart = false;
+        bool flag_diamond = false;
+        bool flag_spade = false;
+        bool flag_club = false;
+
+        foreach (int cardID, player->getPile(Yijiu::yijiu_pile)) {
+            const Card* card = Sanguosha->getCard(cardID);
+            Card::Suit suit = card->getSuit();
+
+            if(suit == Card::Heart) {
+                flag_heart = true;
+            }else if(suit == Card::Diamond) {
+                flag_diamond = true;
+            }else if(suit == Card::Spade) {
+                flag_spade = true;
+            }else if(suit == Card::Club) {
+                flag_club = true;
+            }
+        }
+
+        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_heart, flag_deputy, flag_heart));
+        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_diamond, flag_deputy, flag_diamond));
+        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_spade, flag_deputy, flag_spade));
+        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_club, flag_deputy, flag_club));
+    }
+};
+
+QString YijiuSkillKeep::skill_heart = "tiancheng";
+QString YijiuSkillKeep::skill_diamond = "lianji";
+QString YijiuSkillKeep::skill_spade = "huixia";
+QString YijiuSkillKeep::skill_club = "liangcai";
+
+class Huixia : public TriggerSkill {
+public:
+    Huixia() : TriggerSkill("huixia") {
+        events << SlashMissed;
     }
 
     virtual bool canPreshow() const {
         return true;
     }
 
-    virtual TriggerList triggerable(TriggerEvent event, Room *room, ServerPlayer *player, QVariant &data) const {
+    virtual TriggerList triggerable(TriggerEvent , Room *, ServerPlayer *, QVariant &data) const {
         TriggerList skill_list;
-        if(event == DamageComplete) {
-            QList<ServerPlayer *> feiges = room->findPlayersBySkillName(objectName());
-            foreach(ServerPlayer *feige, feiges) {
-                if(feige->getPhase() == Player::Play) {
-                    int n = feige->getMark(mark_bingjiu);
-                    if(n >= 2) continue;
+        SlashEffectStruct effect = data.value<SlashEffectStruct>();
+        QMap<ServerPlayer *, const Card *> kexins;
 
-                    n += data.value<DamageStruct>().damage;
-                    room->setPlayerMark(feige, mark_bingjiu, n);
-                    if (n >= 2) {
-                        QList<ServerPlayer *> targets = room->getAlivePlayers();
-                        foreach(ServerPlayer *target, targets) {
-                            if(target->isWounded() && feige->isFriendWith(target)) {
-                                skill_list.insert(feige, QStringList(objectName()));
-                                break;
-                            }
-                        }
-                    }
-                }
+        if(effect.to->hasSkill(this)) {
+            kexins.insert(effect.to, effect.slash);
+        }
+
+        if(effect.from->hasSkill(this)) {
+            kexins.insert(effect.from, effect.jink);
+        }
+
+        for(ServerPlayer* kexin : kexins.keys()) {
+            const Card* card = kexins.value(kexin);
+            if(card) {
+                if(!card->isVirtualCard() || (card->isVirtualCard() && card->getSubcards().length()>0))
+                    skill_list.insert(kexin, QStringList(objectName()));
             }
-            return skill_list;
         }
 
-        if (!TriggerSkill::triggerable(player)) return skill_list;
-        if(event == CardFinished && data.value<CardUseStruct>().card->isKindOf("Analeptic")) {
-            skill_list.insert(player, QStringList(objectName()));
-        }
         return skill_list;
+
     }
 
-    virtual bool cost(TriggerEvent event, Room *room, ServerPlayer *, QVariant &, ServerPlayer *feige) const {
-        bool invoke = feige->hasShownSkill(this) ? true : feige->askForSkillInvoke(this, (int)event);
-        if(invoke) {
-            room->sendCompulsoryTriggerLog(feige, objectName());
-            room->broadcastSkillInvoke(objectName(), feige);
+    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *, QVariant &data, ServerPlayer *kexin) const {
+       if (kexin->askForSkillInvoke(this, data)) {
+            room->broadcastSkillInvoke(objectName(), kexin);
+            return true;
         }
-        return invoke;
+        return false;
     }
 
-    virtual bool effect(TriggerEvent event, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *feige) const {
-        if(event == DamageComplete) {
-            QList<ServerPlayer *> targets;
-            foreach(ServerPlayer* target, room->getAlivePlayers()) {
-                if(target->isWounded() && feige->isFriendWith(target)) {
-                    targets << target;
-                }
-            }
+    virtual bool effect(TriggerEvent, Room *, ServerPlayer *, QVariant &data, ServerPlayer *kexin) const {
+        SlashEffectStruct effect = data.value<SlashEffectStruct>();
 
-            if(targets.count() > 0) {
-                ServerPlayer *target = room->askForPlayerChosen(feige, targets, objectName(), "@bingjiu-recover", false, false);
-
-                RecoverStruct recover;
-                recover.who = target;
-                room->recover(target, recover);
-            }
-        }else if(event == CardFinished) {
-            room->damage(DamageStruct(objectName(), player, player));
+        if(kexin == effect.to) {
+            kexin->obtainCard(effect.slash);
         }
+
+        if(kexin == effect.from) {
+            kexin->obtainCard(effect.jink);
+        }
+
         return false;
     }
 };
 
-QString Bingjiu::mark_bingjiu = "bingjiu-PhaseClear";
+class Liangcai : public TriggerSkill {
+public:
+    Liangcai() : TriggerSkill("liangcai") {
+        events << AskForRetrial;
+    }
+
+    virtual bool canPreshow() const {
+        return true;
+    }
+
+    virtual QStringList triggerable(TriggerEvent, Room *, ServerPlayer *player, QVariant &, ServerPlayer * &) const {
+        if (!TriggerSkill::triggerable(player))
+            return QStringList();
+
+        return QStringList(objectName());
+    }
+
+    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data, ServerPlayer *) const {
+        if (player->askForSkillInvoke(this, data)) {
+            room->notifySkillInvoked(player, objectName());
+            room->broadcastSkillInvoke(objectName(), player);
+            return true;
+        }
+        return false;
+    }
+
+    virtual bool effect(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data, ServerPlayer *) const {
+        const Card* card = Sanguosha->getCard(room->getNCards(1)[0]);
+
+        CardMoveReason reason(CardMoveReason::S_REASON_RESPONSE, player->objectName(), objectName(), QString());
+        room->moveCardTo(card, NULL, Player::PlaceTable, reason);
+
+        JudgeStruct* judge = data.value<JudgeStruct*>();
+        room->retrial(card, player, judge, objectName());
+        judge->updateResult();
+
+        return false;
+    }
+};
 
 YunPackage::YunPackage()
     :Package("yun")
@@ -1133,16 +1287,23 @@ YunPackage::YunPackage()
 
     General *liyunpeng = new General(this, "liyunpeng", "qun", 3); // G.Yun 007
     liyunpeng->addSkill(new Dianjiang);
-    liyunpeng->addSkill(new Bingjiu);
+    liyunpeng->addSkill(new Yijiu);
+    liyunpeng->addSkill(new YijiuSkillKeep);
+    insertRelatedSkills("yijiu", "#yijiuskillkeep");
     liyunpeng->addRelateSkill("hongyan");
     liyunpeng->addRelateSkill("qiaopo");
     liyunpeng->addRelateSkill("xuanyang");
     liyunpeng->addRelateSkill("biyue_liyunpeng");
+    liyunpeng->addRelateSkill("tiancheng");
+    liyunpeng->addRelateSkill("lianji");
+    liyunpeng->addRelateSkill("huixia");
+    liyunpeng->addRelateSkill("liangcai");
 
     addMetaObject<QiaopoCard>();
     addMetaObject<QifengCard>();
+    addMetaObject<YijiuCard>();
 
-    skills << new HongyanHuaibeibei << new HongyanHuaibeibeiMaxCards << new Xuanyang << new BiyueLiyunpeng;
+    skills << new HongyanHuaibeibei << new HongyanHuaibeibeiMaxCards << new Xuanyang << new BiyueLiyunpeng << new Huixia << new Liangcai;
 }
 
 ADD_PACKAGE(Yun)
