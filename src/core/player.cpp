@@ -1245,8 +1245,10 @@ bool Player::canSlash(const Player *other, const Card *slash, bool distance_limi
     if (distance == -1)
         return false;
 
-    if (distance_limit)
+    if (distance_limit) {
+        if(this->hasShownSkill("shenglong") && other->inMyAttackRange(this)) return true;
         return distance <= getAttackRange() + Sanguosha->correctCardTarget(TargetModSkill::DistanceLimit, this, slash == NULL ? newslash : slash, other);
+    }
     else
         return true;
 }

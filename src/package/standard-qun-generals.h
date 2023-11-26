@@ -82,5 +82,15 @@ public:
     virtual void onEffect(const CardEffectStruct &effect) const;
 };
 
+class Biyue : public PhaseChangeSkill
+{
+    Q_OBJECT
+public:
+    Q_INVOKABLE Biyue();
+    virtual QStringList triggerable(TriggerEvent, Room *, ServerPlayer *player, QVariant &, ServerPlayer* &) const;
+    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const;
+    virtual bool onPhaseChange(ServerPlayer *diaochan) const;
+};
+
 #endif
 

@@ -2,6 +2,7 @@
 #include "standard-basics.h"
 #include "skill.h"
 #include "yun.h"
+#include "standard-qun-generals.h"
 #include "strategic-advantage.h"
 #include "client.h"
 #include "engine.h"
@@ -518,8 +519,9 @@ public:
     }
 
     virtual QStringList triggerable(TriggerEvent event, Room *, ServerPlayer *player, QVariant &data, ServerPlayer * &) const {
-        if (!TriggerSkill::triggerable(player))
+        if(!TriggerSkill::triggerable(player)) {
             return QStringList();
+        }
 
         if(event == CardUsed) {
             CardUseStruct use = data.value<CardUseStruct>();
@@ -543,6 +545,8 @@ public:
                 return QStringList(objectName());
             }
         }
+        //修改闪电的伤害来源部分放在闪电的定义中实现。
+        //因为闪电没有伤害来源，不会触发ConfirmDamage事件，最早只能使用DamageForseen来实现，实现不准确，故放弃
 
         return QStringList();
     }
@@ -944,76 +948,8 @@ public:
 
 QString Dianjiang::skill_heart = "hongyan";
 QString Dianjiang::skill_diamond = "qiaopo";
-QString Dianjiang::skill_spade = "xuanyang";
+QString Dianjiang::skill_spade = "xuanyang_liyunpeng";
 QString Dianjiang::skill_club = "biyue_liyunpeng";
-
-class Xuanyang : public TriggerSkill {
-public:
-    Xuanyang() : TriggerSkill("xuanyang") {
-        events << TargetChosen;
-    }
-
-    virtual QStringList triggerable(TriggerEvent, Room *, ServerPlayer *player, QVariant &data, ServerPlayer* &) const {
-        CardUseStruct use = data.value<CardUseStruct>();
-        if (!TriggerSkill::triggerable(player))
-            return QStringList();
-
-        if (use.card != NULL && use.card->isKindOf("Slash")) {
-            ServerPlayer *target = use.to.at(use.index);
-            if (target != NULL)
-                return QStringList(objectName() + "->" + target->objectName());
-        }
-        return QStringList();
-    }
-
-    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *skill_target, QVariant &, ServerPlayer *ask_who) const {
-        if (ask_who != NULL && ask_who->askForSkillInvoke(this, QVariant::fromValue(skill_target))) {
-            room->setEmotion(ask_who, "weapon/double_sword");
-            room->broadcastSkillInvoke(objectName(), ask_who);
-            return true;
-        }
-        return false;
-    }
-
-    virtual bool effect(TriggerEvent, Room *room, ServerPlayer *skill_target, QVariant &data, ServerPlayer *ask_who) const {
-        bool draw_card = false;
-        if (!skill_target->canDiscard(skill_target, "h"))
-            draw_card = true;
-        else {
-            if(!room->askForCard(skill_target, "h", "@xuanyang-discard:" + ask_who->objectName(), QVariant::fromValue(data)))
-                draw_card = true;
-        }
-        if (draw_card)
-            ask_who->drawCards(1);
-        return false;
-    }
-};
-
-class BiyueLiyunpeng : public PhaseChangeSkill {
-public:
-    BiyueLiyunpeng() : PhaseChangeSkill("biyue_liyunpeng") {
-        frequency = Frequent;
-    }
-
-    virtual QStringList triggerable(TriggerEvent, Room *, ServerPlayer *player, QVariant &, ServerPlayer* &) const {
-        if (!PhaseChangeSkill::triggerable(player)) return QStringList();
-        if (player->getPhase() == Player::Finish) return QStringList(objectName());
-        return QStringList();
-    }
-
-    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const {
-        if (player->askForSkillInvoke(this)) {
-            room->broadcastSkillInvoke(objectName(), player);
-            return true;
-        }
-        return false;
-    }
-
-    virtual bool onPhaseChange(ServerPlayer *player) const {
-        player->drawCards(1);
-        return false;
-    }
-};
 
 YijiuCard::YijiuCard() {
     mute = true;
@@ -1039,6 +975,10 @@ void YijiuCard::onEffect(const CardEffectStruct &effect) const {
 class Yijiu : public OneCardViewAsSkill {
 public:
     static QString yijiu_pile;
+    static QString skill_heart;
+    static QString skill_diamond;
+    static QString skill_spade;
+    static QString skill_club;
 
     Yijiu() : OneCardViewAsSkill("yijiu")
     {
@@ -1062,13 +1002,13 @@ public:
 };
 
 QString Yijiu::yijiu_pile = "jiuyou";
+QString Yijiu::skill_heart = "tiancheng";
+QString Yijiu::skill_diamond = "lianji";
+QString Yijiu::skill_spade = "huixia_liyunpeng";
+QString Yijiu::skill_club = "liangcai_liyunpeng";
 
 class YijiuSkillKeep : public TriggerSkill {
 public:
-    static QString skill_heart;
-    static QString skill_diamond;
-    static QString skill_spade;
-    static QString skill_club;
 
     YijiuSkillKeep() : TriggerSkill("#yijiuskillkeep") {
         events << CardsMoveOneTime << EventLoseSkill << EventAcquireSkill << GeneralShown << GeneralHidden << DFDebut;
@@ -1111,10 +1051,10 @@ public:
         //如果此技能未亮，且拥有此技能，则清除附属技能
         if(!player->hasShownSkill(objectName())) {
             if(player->hasSkill(objectName())) {
-                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_heart, flag_deputy, false));
-                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_diamond, flag_deputy, false));
-                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_spade, flag_deputy, false));
-                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_club, flag_deputy, false));
+                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(Yijiu::skill_heart, flag_deputy, false));
+                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(Yijiu::skill_diamond, flag_deputy, false));
+                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(Yijiu::skill_spade, flag_deputy, false));
+                room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(Yijiu::skill_club, flag_deputy, false));
             }
             return;
         }
@@ -1140,17 +1080,54 @@ public:
             }
         }
 
-        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_heart, flag_deputy, flag_heart));
-        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_diamond, flag_deputy, flag_diamond));
-        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_spade, flag_deputy, flag_spade));
-        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(skill_club, flag_deputy, flag_club));
+        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(Yijiu::skill_heart, flag_deputy, flag_heart));
+        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(Yijiu::skill_diamond, flag_deputy, flag_diamond));
+        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(Yijiu::skill_spade, flag_deputy, flag_spade));
+        room->handleAcquireDetachSkills(player, Dianjiang::getHandleString(Yijiu::skill_club, flag_deputy, flag_club));
     }
 };
 
-QString YijiuSkillKeep::skill_heart = "tiancheng";
-QString YijiuSkillKeep::skill_diamond = "lianji";
-QString YijiuSkillKeep::skill_spade = "huixia";
-QString YijiuSkillKeep::skill_club = "liangcai";
+class Xuanyang : public TriggerSkill {
+public:
+    Xuanyang() : TriggerSkill("xuanyang") {
+        events << TargetChosen;
+    }
+
+    virtual QStringList triggerable(TriggerEvent, Room *, ServerPlayer *player, QVariant &data, ServerPlayer* &) const {
+        CardUseStruct use = data.value<CardUseStruct>();
+        if (!TriggerSkill::triggerable(player))
+            return QStringList();
+
+        if (use.card != NULL && use.card->isKindOf("Slash") && use.to.length() == 1) {
+            ServerPlayer *target = use.to.at(use.index);
+            if (target != NULL)
+                return QStringList(objectName() + "->" + target->objectName());
+        }
+        return QStringList();
+    }
+
+    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *skill_target, QVariant &, ServerPlayer *ask_who) const {
+        if (ask_who != NULL && ask_who->askForSkillInvoke(this, QVariant::fromValue(skill_target))) {
+            room->setEmotion(ask_who, "weapon/double_sword");
+            room->broadcastSkillInvoke(objectName(), ask_who);
+            return true;
+        }
+        return false;
+    }
+
+    virtual bool effect(TriggerEvent, Room *room, ServerPlayer *skill_target, QVariant &data, ServerPlayer *ask_who) const {
+        bool draw_card = false;
+        if (!skill_target->canDiscard(skill_target, "h"))
+            draw_card = true;
+        else {
+            if(!room->askForCard(skill_target, ".|.|.|hand", "@xuanyang-discard:" + ask_who->objectName(), data, Card::MethodDiscard))
+                draw_card = true;
+        }
+        if (draw_card)
+            ask_who->drawCards(1);
+        return false;
+    }
+};
 
 class Huixia : public TriggerSkill {
 public:
@@ -1250,6 +1227,95 @@ public:
     }
 };
 
+class Erze : public TriggerSkill {
+public:
+    Erze() : TriggerSkill("erze") {
+        events << SlashMissed << DamageCaused;
+    }
+
+    virtual bool canPreshow() const {
+        return true;
+    }
+
+    virtual QStringList triggerable(TriggerEvent event, Room *, ServerPlayer *player, QVariant &data, ServerPlayer * &player2) const {
+        if(event == SlashMissed) {
+            if(!TriggerSkill::triggerable(player2)) return QStringList();
+
+            if(!data.value<SlashEffectStruct>().to->isAlive()) return QStringList();
+            int redCount = 0;
+            int blackCount = 0;
+            foreach (const Card *card, player2->getHandcards()) {
+                if (card->isRed()) redCount++;
+                else if (card->isBlack()) blackCount++;
+            }
+            if (redCount >= blackCount) return QStringList(objectName());
+        }else if(event == DamageCaused) {
+            if (!TriggerSkill::triggerable(player)) return QStringList();
+            DamageStruct damage = data.value<DamageStruct>();
+            if(damage.card != NULL && damage.card->isKindOf("Slash") && !damage.chain && !damage.transfer) {
+                int redCount = 0;
+                int blackCount = 0;
+                foreach (const Card *card, player->getHandcards()) {
+                    if (card->isRed()) redCount++;
+                    else if (card->isBlack()) blackCount++;
+                }
+                if (blackCount > redCount) return QStringList(objectName());
+            }
+        }
+
+        return QStringList();
+    }
+
+    virtual bool cost(TriggerEvent event, Room *room, ServerPlayer *player, QVariant &data, ServerPlayer *player2) const {
+        ServerPlayer *xiaoyue = player;
+        ServerPlayer *target = player;
+        if(event == SlashMissed)  {
+            xiaoyue = player2;
+            target = data.value<SlashEffectStruct>().to;
+        }else if(event == DamageCaused){
+            xiaoyue = player;
+            target = data.value<DamageStruct>().to;
+        }
+        if (xiaoyue->askForSkillInvoke(this, QVariant::fromValue(target))) {
+            room->notifySkillInvoked(xiaoyue, objectName());
+            room->broadcastSkillInvoke(objectName(), xiaoyue);
+            return true;
+        }
+        return false;
+    }
+
+    virtual bool effect(TriggerEvent event, Room *room, ServerPlayer *player, QVariant &data, ServerPlayer *player2) const {
+        ServerPlayer *xiaoyue = player;
+        if(event == SlashMissed) xiaoyue = player2;
+        room->showAllCards(xiaoyue);
+        if(event == SlashMissed) {
+            room->setEmotion(xiaoyue, "weapon/axe");
+            room->slashResult(data.value<SlashEffectStruct>(), NULL);
+        }else if(event == DamageCaused) {
+            DamageStruct damage = data.value<DamageStruct>();
+            damage.damage++;
+            data = QVariant::fromValue(damage);
+
+            room->setEmotion(xiaoyue, "weapon/guding_blade");
+        }
+
+        return false;
+    }
+};
+
+class Shenglong : public TriggerSkill {
+public:
+    Shenglong() : TriggerSkill("shenglong") {
+        frequency = Compulsory;
+    }
+
+    virtual bool canPreshow() const {
+        return false;
+    }
+
+    //功能实现在 Player::canSlash() 方法中
+};
+
 YunPackage::YunPackage()
     :Package("yun")
 {
@@ -1290,20 +1356,44 @@ YunPackage::YunPackage()
     liyunpeng->addSkill(new Yijiu);
     liyunpeng->addSkill(new YijiuSkillKeep);
     insertRelatedSkills("yijiu", "#yijiuskillkeep");
-    liyunpeng->addRelateSkill("hongyan");
-    liyunpeng->addRelateSkill("qiaopo");
-    liyunpeng->addRelateSkill("xuanyang");
-    liyunpeng->addRelateSkill("biyue_liyunpeng");
-    liyunpeng->addRelateSkill("tiancheng");
-    liyunpeng->addRelateSkill("lianji");
-    liyunpeng->addRelateSkill("huixia");
-    liyunpeng->addRelateSkill("liangcai");
+    liyunpeng->addRelateSkill(Dianjiang::skill_heart);
+    liyunpeng->addRelateSkill(Dianjiang::skill_diamond);
+    liyunpeng->addRelateSkill(Dianjiang::skill_spade);
+    liyunpeng->addRelateSkill(Dianjiang::skill_club);
+    liyunpeng->addRelateSkill(Yijiu::skill_heart);
+    liyunpeng->addRelateSkill(Yijiu::skill_diamond);
+    liyunpeng->addRelateSkill(Yijiu::skill_spade);
+    liyunpeng->addRelateSkill(Yijiu::skill_club);
+    Xuanyang* xuanyang_liyunpeng = new Xuanyang;
+    xuanyang_liyunpeng->setObjectName(Dianjiang::skill_spade);
+    Huixia* huixia_liyunpeng = new Huixia;
+    huixia_liyunpeng->setObjectName(Yijiu::skill_spade);
+    Liangcai* liangcai_liyunpeng = new Liangcai;
+    liangcai_liyunpeng->setObjectName(Yijiu::skill_club);
+    Biyue* biyue_liyunpeng = new Biyue;
+    biyue_liyunpeng->setObjectName(Dianjiang::skill_club);
+
+    General *congxiaoyue = new General(this, "congxiaoyue", "qun", 4); //G.YUN 008
+    congxiaoyue->addSkill(new Erze);
+    congxiaoyue->addSkill(new Shenglong);
+    congxiaoyue->addCompanion("liyunpeng");
+
+    General *likexin = new General(this, "likexin", "qun", 3, false, true); // G.Yun 007.SP01
+    likexin->addSkill(new Xuanyang);
+    likexin->addSkill(new Huixia);
+    likexin->addCompanion("liyunpeng");
+
+    General *liujianan = new General(this, "liujianan", "qun", 4, false, true); // G.Yun 007.SP02
+    liujianan->addSkill(new Liangcai);
+    Biyue* biyue_liujianan = new Biyue;
+    biyue_liujianan->setObjectName("biyue_liujianan");
+    liujianan->addSkill(biyue_liujianan);
 
     addMetaObject<QiaopoCard>();
     addMetaObject<QifengCard>();
     addMetaObject<YijiuCard>();
 
-    skills << new HongyanHuaibeibei << new HongyanHuaibeibeiMaxCards << new Xuanyang << new BiyueLiyunpeng << new Huixia << new Liangcai;
+    skills << new HongyanHuaibeibei << new HongyanHuaibeibeiMaxCards << xuanyang_liyunpeng << huixia_liyunpeng << liangcai_liyunpeng << biyue_liyunpeng;
 }
 
 ADD_PACKAGE(Yun)

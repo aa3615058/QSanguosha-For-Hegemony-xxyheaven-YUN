@@ -62,6 +62,7 @@ end
 
 --炫阳
 sgs.ai_skill_invoke.xuanyang = sgs.ai_skill_invoke.DoubleSword
+sgs.ai_skill_invoke.xuanyang_liyunpeng = sgs.ai_skill_invoke.xuanyang
 sgs.ai_skill_cardask["@xuanyang-discard"] = sgs.ai_skill_cardask["double-sword-card"]
 
 --慧黠
@@ -69,6 +70,7 @@ sgs.ai_skill_invoke.huixia = function(self, data)
 	if not (self:willShowForAttack() or self:willShowForDefence()) then return false end
 	return true
 end
+sgs.ai_skill_invoke.huixia_liyunpeng = sgs.ai_skill_invoke.huixia
 
 --闭月
 sgs.ai_skill_invoke.biyue_liyunpeng = sgs.ai_skill_invoke.biyue
@@ -80,5 +82,24 @@ sgs.ai_skill_invoke.liangcai = function(self, data)
 	end
 	return false
 end
+sgs.ai_skill_invoke.liangcai_liyunpeng = sgs.ai_skill_invoke.liangcai
 
---病酒
+--李可欣
+--炫阳，慧黠，前面写过了
+
+--刘甲楠
+--良才，前面写过了
+--闭月
+sgs.ai_skill_invoke.biyue_liujianan = sgs.ai_skill_invoke.biyue
+
+--从晓月
+--二择
+sgs.ai_skill_invoke.erze = function(self, data)
+	if not self:willShowForAttack() then return false end
+	return not self:isFriend(data:toPlayer())
+	--local target = data:toPlayer()
+	--if not self:isFriend(target) then
+	--	return true
+	--end
+	--return false
+end

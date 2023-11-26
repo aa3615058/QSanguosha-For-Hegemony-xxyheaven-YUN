@@ -19,7 +19,6 @@ class QiaopoCard : public SkillCard
 
 public:
     Q_INVOKABLE QiaopoCard();
-
     void onEffect(const CardEffectStruct &effect) const;
 };
 

@@ -340,37 +340,60 @@ public:
     }
 };
 
-class Biyue : public PhaseChangeSkill
-{
-public:
-    Biyue() : PhaseChangeSkill("biyue")
-    {
-        frequency = Frequent;
-    }
+Biyue::Biyue() : PhaseChangeSkill("biyue") {
+    frequency = Frequent;
+}
 
-    virtual QStringList triggerable(TriggerEvent, Room *, ServerPlayer *player, QVariant &, ServerPlayer* &) const
-    {
-        if (!PhaseChangeSkill::triggerable(player)) return QStringList();
-        if (player->getPhase() == Player::Finish) return QStringList(objectName());
-        return QStringList();
-    }
+QStringList Biyue::triggerable(TriggerEvent, Room *, ServerPlayer *player, QVariant &, ServerPlayer* &) const {
+    if (!PhaseChangeSkill::triggerable(player)) return QStringList();
+    if (player->getPhase() == Player::Finish) return QStringList(objectName());
+    return QStringList();
+}
 
-    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const
-    {
-        if (player->askForSkillInvoke(this)) {
-            room->broadcastSkillInvoke(objectName(), player);
-            return true;
-        }
-        return false;
+bool Biyue::cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const {
+    if (player->askForSkillInvoke(this)) {
+        room->broadcastSkillInvoke(objectName(), player);
+        return true;
     }
+    return false;
+}
 
-    virtual bool onPhaseChange(ServerPlayer *diaochan) const
-    {
-        diaochan->drawCards(1);
+bool Biyue::onPhaseChange(ServerPlayer *diaochan) const {
+    diaochan->drawCards(1);
+    return false;
+}
 
-        return false;
-    }
-};
+//class Biyue : public PhaseChangeSkill
+//{
+//public:
+//    Biyue() : PhaseChangeSkill("biyue")
+//    {
+//        frequency = Frequent;
+//    }
+
+//    virtual QStringList triggerable(TriggerEvent, Room *, ServerPlayer *player, QVariant &, ServerPlayer* &) const
+//    {
+//        if (!PhaseChangeSkill::triggerable(player)) return QStringList();
+//        if (player->getPhase() == Player::Finish) return QStringList(objectName());
+//        return QStringList();
+//    }
+
+//    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const
+//    {
+//        if (player->askForSkillInvoke(this)) {
+//            room->broadcastSkillInvoke(objectName(), player);
+//            return true;
+//        }
+//        return false;
+//    }
+
+//    virtual bool onPhaseChange(ServerPlayer *diaochan) const
+//    {
+//        diaochan->drawCards(1);
+
+//        return false;
+//    }
+//};
 
 class LuanjiViewAsSkill : public ViewAsSkill
 {

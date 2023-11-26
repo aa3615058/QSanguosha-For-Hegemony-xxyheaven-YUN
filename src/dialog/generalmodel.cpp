@@ -140,7 +140,7 @@ QVariant GeneralModel::data(const QModelIndex &index, int role) const
             if (Config.value("LuaPackages", QString()).toString().split("+").contains(general->getPackage())) {
                 return QBrush(QColor(0x66, 0xCC, 0xFF));
             } else if(general->getPackage()=="yun") {
-                return QBrush(QColor(0x00, 0xFF, 0xCC));
+                return QBrush(QColor(0x66, 0xFF, 0xCC));
             }else {
                 break;
             }

@@ -147,11 +147,12 @@ huaibeibei hanjing								22 22
 huaibeibei lukang								20 21
 lord_sunquan huaibeibei							24 23
 hanjing lvmeng									23 24
-hanjing xiaoqiao								22 22
 wangcan guojia									23 23
 wangcan dengai									24 25
 wangcan xiahouyuan								24 23
-wangcan xunyou									21 20
+lord_caocao wangcan								24 23
 liyunpeng jiaxu									21 21
-liyunpeng kongrong								20 20
-liyunpeng dongzhuo								21 20
+liyunpeng dongzhuo								22 20
+liyunpeng congxiaoyue							22 22
+congxiaoyue pangde								21 21
+lord_zhangjiao congxiaoyue						21 20
