@@ -463,10 +463,6 @@ public:
         response_or_use = true;
     }
 
-    virtual bool canPreshow() const {
-        return true;
-    }
-
     const Card *viewAs(const Card *originalCard) const {
         LureTiger *lureTiger = new LureTiger(originalCard->getSuit(), originalCard->getNumber());
         lureTiger->addSubcard(originalCard->getId());
@@ -675,16 +671,18 @@ public:
     }
     bool isEnabledAtPlay(const Player *player) const {
         if(player->getMark(mark_flag) > 0) {
-            int id = player->getMark(mark_cardid);
-            Card *card = Sanguosha->getCard(id);
+            //int id = player->getMark(mark_cardid);
+            //Card *card = Sanguosha->getCard(id);
+            Card *card = (Card*) (Self->getMark(mark_cardid));
             if(card && card->isAvailable(player)) return true;
         }
         return false;
     }
     bool isEnabledAtResponse(const Player *player, const QString &pattern) const {
         if(player->getPhase() == Player::Play && player->getMark(mark_flag) > 0) {
-            int id = player->getMark(mark_cardid);
-            Card *card = Sanguosha->getCard(id);
+            //int id = player->getMark(mark_cardid);
+            //Card *card = Sanguosha->getCard(id);
+            Card *card = (Card*) (Self->getMark(mark_cardid));
             if(card) {
                 QString card_name = card->objectName();
                 return pattern.contains(card_name) || card_name.contains(pattern);
@@ -694,8 +692,9 @@ public:
     }
     bool isEnabledAtNullification(const ServerPlayer *player) const {
         if(player->getPhase() == Player::Play && player->getMark(mark_flag) > 0) {
-            int id = player->getMark(mark_cardid);
-            Card *card = Sanguosha->getCard(id);
+            //int id = player->getMark(mark_cardid);
+            //Card *card = Sanguosha->getCard(id);
+            Card *card = (Card*) (Self->getMark(mark_cardid));
             return card && card->objectName().contains("nullification");
         }
         return false;
@@ -704,16 +703,21 @@ public:
         if (card->isEquipped() || card->getColor()==Card::Colorless)
             return false;
 
-        int id = Self->getMark(mark_cardid);
-        Card *yingzhou_card = Sanguosha->getCard(id);
+        //int id = Self->getMark(mark_cardid);
+        //Card *yingzhou_card = Sanguosha->getCard(id);
+        Card *yingzhou_card = (Card*) (Self->getMark(mark_cardid));
         if(yingzhou_card) {
             return card->getColor() != yingzhou_card->getColor();
         }
         return false;
     }
     const Card *viewAs(const Card *originalCard) const {
-        Card* acard = Sanguosha->cloneCard(Sanguosha->getCard(Self->getMark(mark_cardid))->objectName(),
+
+        //Card* acard = Sanguosha->cloneCard(Sanguosha->getCard(Self->getMark(mark_cardid))->objectName(),
+        //        originalCard->getSuit(), originalCard->getNumber());
+        Card* acard = Sanguosha->cloneCard(((Card*) (Self->getMark(mark_cardid)))->objectName(),
                 originalCard->getSuit(), originalCard->getNumber());
+
         acard->addSubcard(originalCard->getId());
         acard->setSkillName(objectName());
         acard->setShowSkill(objectName());
@@ -749,7 +753,10 @@ public:
                          && (card->getSkillName().isNull() || card->getSkillName()!=objectName())
                         && !(card->getColor()==Card::Colorless)) {
                      room->setPlayerMark(player, YingzhouViewAsSkill::mark_flag, 1);
-                     room->setPlayerMark(player, YingzhouViewAsSkill::mark_cardid, card->getId());
+                     //room->setPlayerMark(player, YingzhouViewAsSkill::mark_cardid, card->getId());
+                     Card *cloneCard = Sanguosha->cloneCard(card);
+                     player->tag["yingzhou_card"] = QVariant::fromValue(cloneCard);
+                     room->setPlayerMark(player, YingzhouViewAsSkill::mark_cardid, (int)cloneCard);
 
                      if(player->hasShownSkill(objectName())) {
                          if(is_mark_tip_not_null)
